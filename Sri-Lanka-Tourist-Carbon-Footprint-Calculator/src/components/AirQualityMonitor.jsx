@@ -3,11 +3,11 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 const MAX_HISTORY = 40;
 
 const airQuality = (ppm) => {
-  if (ppm < 800)  return { label: "Excellent", color: "#22c55e", bg: "#052e16" };
-  if (ppm < 1000) return { label: "Good",      color: "#86efac", bg: "#064e26" };
-  if (ppm < 1500) return { label: "Moderate",   color: "#fbbf24", bg: "#2d1d04" };
-  if (ppm < 2000) return { label: "Poor",       color: "#f97316", bg: "#2d1005" };
-  return                  { label: "Dangerous",  color: "#f87171", bg: "#2d0505" };
+  if (ppm < 800)  return { label: "Excellent", color: "#2d6a4f", bg: "#e8f5ee" };
+  if (ppm < 1000) return { label: "Good",      color: "#15803d", bg: "#f0fdf4" };
+  if (ppm < 1500) return { label: "Moderate",   color: "#b45309", bg: "#fef3c7" };
+  if (ppm < 2000) return { label: "Poor",       color: "#c2410c", bg: "#ffedd5" };
+  return                  { label: "Dangerous",  color: "#c0392b", bg: "#fdecea" };
 };
 
 export default function AirQualityMonitor() {
@@ -170,7 +170,7 @@ export default function AirQualityMonitor() {
       >
         <span className="aqm-header-left">
           <span className={`aqm-dot ${connected ? "aqm-dot--live" : "aqm-dot--off"}`} />
-          <span className="aqm-title">🌍 Air Quality</span>
+          <span className="aqm-title">Air Quality</span>
         </span>
         {co2 !== null && !collapsed && (
           <span className="aqm-header-badge" style={{ color: quality.color, background: quality.bg }}>
@@ -244,14 +244,13 @@ export default function AirQualityMonitor() {
               {/* ── Location info ── */}
               {ipLocation && (
                 <div className="aqm-location-row">
-                  <span className="aqm-location-icon">🌐</span>
                   <span className="aqm-location-text">{ipLocation}</span>
                 </div>
               )}
 
               {gpsData && (
                 <div className="aqm-gps-section">
-                  <div className="aqm-gps-label">📍 Exact GPS</div>
+                  <div className="aqm-gps-label">Exact GPS</div>
                   <div className="aqm-gps-coords">
                     {parseFloat(gpsData.lat).toFixed(6)}, {parseFloat(gpsData.lng).toFixed(6)}
                   </div>
@@ -264,7 +263,7 @@ export default function AirQualityMonitor() {
                     rel="noopener noreferrer"
                     className="aqm-maps-link"
                   >
-                    🔗 Open in Google Maps
+                    Open in Google Maps
                   </a>
                 </div>
               )}

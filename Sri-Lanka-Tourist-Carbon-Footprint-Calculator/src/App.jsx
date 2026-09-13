@@ -581,11 +581,11 @@ const deleteTrip = async (id) => {
             onClick={() => setShowLiveTracking(true)}
             style={{
               marginTop: 12, width: "100%", fontSize: "0.84rem",
-              background: "linear-gradient(135deg, #1e3a5f, #2563eb)",
+              background: "linear-gradient(135deg, #52b788, #2d6a4f)",
               color: "#fff", fontWeight: 600, letterSpacing: "0.02em",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               padding: "10px 16px", borderRadius: 10, border: "none",
-              boxShadow: "0 4px 14px rgba(37,99,235,0.35)", cursor: "pointer",
+              boxShadow: "0 4px 14px rgba(45,106,79,0.25)", cursor: "pointer",
             }}
           >
             Live Tracking

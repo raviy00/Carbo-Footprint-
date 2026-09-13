@@ -1497,15 +1497,16 @@ textarea {
 }
 
 .aqm-reading-card {
-  background: #1e293b;
-  border-radius: 10px;
+  background: #f8faf7;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 10px;
   text-align: center;
 }
 
 .aqm-reading-label {
   font-size: 0.58rem;
-  color: #64748b;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 4px;
@@ -1517,40 +1518,41 @@ textarea {
 }
 
 .aqm-reading-co2 .aqm-reading-value {
-  color: #38bdf8;
+  color: var(--primary);
 }
 
 .aqm-reading-raw .aqm-reading-value {
-  color: #a78bfa;
+  color: var(--ink);
 }
 
 .aqm-reading-unit {
   font-size: 0.62rem;
-  color: #94a3b8;
+  color: var(--muted);
   margin-top: 2px;
 }
 
 /* ── Quality badge ── */
 .aqm-quality-badge {
   display: inline-block;
-  padding: 3px 12px;
+  padding: 4px 14px;
   border-radius: 14px;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   margin-bottom: 10px;
 }
 
 /* ── Chart ── */
 .aqm-chart-wrap {
-  background: #1e293b;
-  border-radius: 10px;
+  background: #f8faf7;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
   padding: 10px;
   margin-bottom: 10px;
 }
 
 .aqm-chart-label {
   font-size: 0.58rem;
-  color: #64748b;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 6px;

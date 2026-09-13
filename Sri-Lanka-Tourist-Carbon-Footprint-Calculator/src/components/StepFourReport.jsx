@@ -8,6 +8,32 @@ function StepFourReport({ reportMarkup, base, destinations, legPlans, dayPlans }
   const [aiInsights, setAiInsights] = useState([]);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [syncedLiveData, setSyncedLiveData] = useState(null);
+
+  const handleSyncLiveTracking = () => {
+    let history = [];
+    try { history = JSON.parse(localStorage.getItem("lt_trip_history") || "[]"); } catch {}
+    const lastTrip = (typeof window !== "undefined" && window.__liveTrackingLastTrip) || history[0] || null;
+
+    if (!lastTrip && history.length === 0) {
+      alert("No completed live tracking trips found. Use 'Live Tracking' on the sidebar to record a trip first!");
+      return;
+    }
+
+    const totalLiveDist = history.reduce((sum, h) => sum + (h.distKm || 0), 0);
+    const totalLiveCo2 = history.reduce((sum, h) => sum + (h.co2 || 0), 0);
+
+    setSyncedLiveData({
+      lastTrip,
+      history,
+      totalLiveDist: +totalLiveDist.toFixed(2),
+      totalLiveCo2: +totalLiveCo2.toFixed(3),
+      syncedAt: new Date().toLocaleTimeString()
+    });
+
+    setRefreshKey((prev) => prev + 1);
+  };
 
   const toDayMinutes = (timeValue) => {
     if (!timeValue || !timeValue.includes(":")) return 0;
@@ -349,7 +375,7 @@ function StepFourReport({ reportMarkup, base, destinations, legPlans, dayPlans }
     return () => {
       isMounted = false;
     };
-  }, [topActivitiesSignature, rankedAIItems]);
+  }, [topActivitiesSignature, rankedAIItems, refreshKey]);
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank", "width=900,height=700");
@@ -460,17 +486,52 @@ function StepFourReport({ reportMarkup, base, destinations, legPlans, dayPlans }
       <div className="report" dangerouslySetInnerHTML={{ __html: reportMarkup }} />
 
       <section className="ai-report-section" style={{ marginTop: 18, padding: 16, borderRadius: 14, border: "1px solid #d9e9e1", background: "linear-gradient(180deg, #f5fbf8 0%, #ffffff 100%)", boxShadow: "0 10px 24px rgba(26, 35, 24, 0.06)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "end", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
           <div>
             <h3 style={{ margin: 0, fontSize: "1.05rem", color: "#1a2318" }}>AI Key Insights</h3>
             <p style={{ margin: "4px 0 0", color: "#6b7c69", fontSize: "0.88rem" }}>
-              Only the top 3 highest-impact activities are sent to the FastAPI prediction endpoint.
+              Top high-impact activities sent to AI prediction endpoint with live trip data.
             </p>
           </div>
-          <div style={{ fontSize: "0.8rem", color: "#2d6a4f", fontWeight: 700 }}>
-            {aiLoading ? "Loading..." : `${aiInsights.length} insight${aiInsights.length === 1 ? "" : "s"}`}
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <button
+              type="button"
+              style={{
+                background: "linear-gradient(135deg, #52b788, #2d6a4f)",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 14px",
+                fontSize: "0.82rem",
+                fontWeight: 600,
+                cursor: "pointer",
+                boxShadow: "0 2px 8px rgba(45, 106, 79, 0.2)",
+                fontFamily: "inherit"
+              }}
+              onClick={handleSyncLiveTracking}
+            >
+              Sync Live Tracking Data
+            </button>
+            <div style={{ fontSize: "0.8rem", color: "#2d6a4f", fontWeight: 700 }}>
+              {aiLoading ? "Loading..." : `${aiInsights.length} insight${aiInsights.length === 1 ? "" : "s"}`}
+            </div>
           </div>
         </div>
+
+        {syncedLiveData && (
+          <div style={{ padding: "12px 14px", borderRadius: 10, background: "#e8f5ee", border: "1px solid #a3e6be", marginBottom: 14, color: "#1e4d39" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ fontWeight: 700, fontSize: "0.86rem" }}>Live Tracking Data Synced ({syncedLiveData.syncedAt})</span>
+              <span style={{ fontSize: "0.72rem", background: "#2d6a4f", color: "#fff", padding: "2px 8px", borderRadius: 10, fontWeight: 600 }}>Active</span>
+            </div>
+            <div style={{ display: "flex", gap: 20, fontSize: "0.82rem", flexWrap: "wrap" }}>
+              <div>Recorded Trips: <strong>{syncedLiveData.history.length}</strong></div>
+              <div>Tracked Distance: <strong>{syncedLiveData.totalLiveDist} km</strong></div>
+              <div>Tracked CO₂: <strong>{syncedLiveData.totalLiveCo2} kg</strong></div>
+              {syncedLiveData.lastTrip && <div>Last Route: <strong>{syncedLiveData.lastTrip.from} → {syncedLiveData.lastTrip.to}</strong></div>}
+            </div>
+          </div>
+        )}
 
         {aiError && (
           <div style={{ padding: 12, borderRadius: 10, background: "#fff4f4", color: "#a52828", border: "1px solid #f0caca", marginBottom: 12 }}>
