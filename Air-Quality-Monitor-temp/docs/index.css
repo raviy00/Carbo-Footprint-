@@ -1,0 +1,497 @@
+/* ═══════════════════════════════════════════════════════════════
+   CO₂ Trip Distance Calculator — Minimalist B&W Theme
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap');
+
+/* ── Custom Properties ─────────────────────────────────────── */
+:root {
+  /* Strict Monochrome Palette */
+  --bg-primary:      #ffffff;
+  --bg-secondary:    #f5f5f5;
+  --bg-hover:        #ebebeb;
+  
+  --border-subtle:   #e0e0e0;
+  --border-strong:   #000000;
+  --border-focus:    #000000;
+
+  --text-primary:    #000000;
+  --text-secondary:  #555555;
+  --text-muted:      #888888;
+
+  /* Spacing */
+  --space-xs:  4px;
+  --space-sm:  8px;
+  --space-md:  16px;
+  --space-lg:  24px;
+  --space-xl:  32px;
+
+  /* Typography */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  height: 100vh;
+  overflow: hidden; /* Main container prevents page scroll */
+}
+
+/* ── Layout (Side-by-Side) ─────────────────────────────────── */
+.split-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 400px;
+  min-width: 400px;
+  height: 100vh;
+  overflow-y: auto; /* Sidebar scrolls independently if needed */
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border-subtle);
+  padding: var(--space-xl) var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* Scrollbar styling for sidebar */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+.sidebar::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+.sidebar::-webkit-scrollbar-thumb {
+  background: #ccc;
+}
+
+/* Map Panel */
+.map-panel {
+  flex-grow: 1;
+  position: relative;
+  height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.map-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* ── Typography & Header ───────────────────────────────────── */
+.app-header {
+  text-align: left;
+  padding-bottom: var(--space-sm);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.app-header__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+
+.app-header__subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: var(--space-xs);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Cards & Containers ────────────────────────────────────── */
+.card {
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.card:last-of-type {
+  border-bottom: none;
+}
+
+.card__title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ── Forms & Inputs ────────────────────────────────────────── */
+.input-group {
+  margin-bottom: var(--space-sm);
+}
+
+.input-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.input-wrapper {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.input-field {
+  flex-grow: 1;
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  border-radius: 0;
+  transition: border-color 0.2s;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn--outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn--outline:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.swap-btn {
+  display: block;
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: var(--space-xs) 0;
+  margin: var(--space-xs) 0;
+  text-align: left;
+}
+.swap-btn:hover {
+  color: var(--text-primary);
+}
+
+/* ── Results & Stats ───────────────────────────────────────── */
+.stats-grid {
+  display: grid;
+  gap: var(--space-md);
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px dashed var(--border-subtle);
+}
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item__label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.stat-item__value {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* ── Sensor Comparison ─────────────────────────────────────── */
+.sensor-card {
+  display: none;
+}
+.sensor-card--visible {
+  display: block;
+}
+
+.sensor-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.comparison-bar {
+  display: flex;
+  height: 24px;
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  margin-bottom: var(--space-xs);
+}
+
+.comparison-bar__segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.comparison-bar__segment--est {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  border-right: 1px solid var(--bg-primary);
+}
+
+.comparison-bar__segment--actual {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.comparison-diff {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.comparison-diff__value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* ── Live Tracking Overlay ─────────────────────────────────── */
+.tracking-overlay {
+  position: absolute;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  align-items: flex-end;
+}
+
+.tracking-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.live-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  animation: flash 1s infinite alternate;
+}
+
+@keyframes flash {
+  0% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
+.tracking-info {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-strong);
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 200px;
+}
+
+.tracking-info__label {
+  color: var(--text-secondary);
+}
+
+/* ── History ───────────────────────────────────────────────── */
+.history-empty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: left;
+}
+
+.history-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.history-item {
+  padding: var(--space-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+}
+
+.history-item__header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+  color: var(--text-secondary);
+}
+
+.history-item__route {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-item__stats {
+  display: flex;
+  gap: var(--space-md);
+  font-family: var(--font-mono);
+}
+
+/* ── Status Messages ───────────────────────────────────────── */
+.status-msg {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  font-size: 0.75rem;
+  border-left: 2px solid var(--border-strong);
+  background: var(--bg-secondary);
+}
+
+/* ── Footer ────────────────────────────────────────────────── */
+.app-footer {
+  margin-top: auto;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: left;
+  padding-top: var(--space-lg);
+}
+
+.app-footer a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.app-footer a:hover {
+  text-decoration: underline;
+  color: var(--text-primary);
+}
+
+.history-item { display: flex; justify-content: space-between; align-items: center; }
+.history-item__details { flex-grow: 1; }
+.history-item__icon { margin-right: var(--space-sm); }
+.history-item__meta { display: flex; gap: var(--space-sm); color: var(--text-secondary); font-size: 0.7rem; }
+.history-item__time { font-size: 0.7rem; color: var(--text-muted); }
+
+
+/* ── Responsive Mobile Layout ──────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    height: 100dvh;
+    overflow: hidden; /* Prevent full-page bounce */
+  }
+  
+  .split-layout {
+    flex-direction: column; 
+    height: 100dvh;
+  }
+  
+  .map-panel {
+    height: 25dvh; /* Made map significantly smaller (25%) */
+    min-height: 150px;
+    width: 100%;
+    flex: none;
+    order: -1;
+  }
+  
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    flex: 1; /* Take remaining space */
+    height: auto;
+    overflow-y: auto; /* Sidebar scrolls independently */
+    border-right: none;
+    border-top: 2px solid var(--border-strong);
+    padding: var(--space-md);
+    padding-bottom: 40px; /* Extra padding for mobile scroll ease */
+  }
+
+  /* Make tracking controls fit better on small screens */
+  .tracking-overlay {
+    top: var(--space-sm);
+    right: var(--space-sm);
+  }
+
+  .tracking-info {
+    min-width: 150px;
+    padding: var(--space-xs) var(--space-sm);
+  }
+}

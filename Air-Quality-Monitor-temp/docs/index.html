@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CO₂ Trip Distance Calculator — Minimal</title>
+  <meta name="description" content="Calculate trip distances and estimated CO₂ emissions between any two locations.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>O</text></svg>">
+  <link rel="stylesheet" href="index.css?v=2">
+</head>
+<body>
+
+  <div class="split-layout">
+
+    <!-- ── Sidebar (Scrollable) ───────────────────────────── -->
+    <aside class="sidebar">
+      
+      <!-- Header -->
+      <header class="app-header" id="app-header">
+        <h1 class="app-header__title">CO₂ Trip Calculator</h1>
+        <p class="app-header__subtitle">Google Maps &amp; MQ-135 Sensor</p>
+      </header>
+
+      <!-- Input Card -->
+      <section class="card" id="input-card" aria-label="Trip input">
+        <div class="card__title">Plan Your Trip</div>
+
+        <div class="input-group">
+          <label class="input-label" for="origin-input">Origin</label>
+          <div class="input-wrapper">
+            <input type="text" class="input-field" id="origin-input" placeholder="Search origin..." autocomplete="off">
+            <button type="button" class="btn btn--outline" id="gps-btn" onclick="getMyLocation()">Use My Location</button>
+          </div>
+        </div>
+
+        <button type="button" class="swap-btn" onclick="swapLocations()" title="Swap origin and destination">Swap</button>
+
+        <div class="input-group">
+          <label class="input-label" for="dest-input">Destination</label>
+          <div class="input-wrapper">
+            <input type="text" class="input-field" id="dest-input" placeholder="Search destination..." autocomplete="off">
+          </div>
+        </div>
+
+        <button type="button" class="btn btn--primary" id="calc-btn" onclick="calculateDistance()">Calculate Distance</button>
+        <div id="status-container"></div>
+      </section>
+
+      <!-- Results Card -->
+      <section class="card results-card" id="results-card" aria-label="Trip results">
+        <div class="card__title">Trip Results</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-item__label">Distance</div>
+            <div class="stat-item__value" id="stat-distance">—</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item__label">Duration</div>
+            <div class="stat-item__value" id="stat-duration">—</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-item__label">CO₂ Est.</div>
+            <div class="stat-item__value" id="stat-co2">—</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Sensor Comparison Card -->
+      <section class="card sensor-card" id="sensor-card" aria-label="MQ-135 sensor comparison">
+        <div class="card__title">MQ-135 Sensor Comparison</div>
+        <div class="sensor-row">
+          <div class="sensor-input-group">
+            <label class="input-label" for="sensor-input">Actual CO₂ Reading (ppm)</label>
+            <input type="number" class="input-field" id="sensor-input" placeholder="e.g. 420" min="0" step="0.1" oninput="updateComparison()">
+            <button type="button" class="btn btn--outline" style="margin-top:8px; width:100%;" id="fetch-sensor-btn" onclick="fetchLiveSensorData()">Get Live Reading</button>
+          </div>
+          <div class="sensor-input-group">
+            <label class="input-label">Estimated CO₂</label>
+            <div class="input-field" id="est-co2-display" style="background:var(--bg-secondary); cursor:default;">—</div>
+          </div>
+        </div>
+
+        <div id="comparison-visual" style="display:none;">
+          <div class="comparison-bar">
+            <div class="comparison-bar__segment comparison-bar__segment--est" id="bar-est" style="width:50%">—</div>
+            <div class="comparison-bar__segment comparison-bar__segment--actual" id="bar-actual" style="width:50%">—</div>
+          </div>
+          <div class="comparison-diff">
+            Difference: <span class="comparison-diff__value" id="diff-value">—</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- ESP32 Integration Card -->
+      <section class="card esp-card" id="esp-card" aria-label="ESP32 Integration">
+        <div class="card__title">ESP32 Integration</div>
+        <div class="input-group">
+          <label class="input-label" for="esp-ip">Air Quality Monitor IP Address</label>
+          <div class="input-wrapper">
+            <input type="text" class="input-field" id="esp-ip" value="10.152.167.144" placeholder="e.g. 192.168.1.100">
+          </div>
+        </div>
+        <button type="button" class="btn btn--outline" style="margin-top: 12px; width: 100%;" id="push-gps-btn" onclick="pushGPSToESP32()" disabled>
+          Push Current GPS to ESP32
+        </button>
+      </section>
+
+      <!-- History Card -->
+      <section class="card history-card" id="history-card" aria-label="Trip history">
+        <div class="card__title">Trip History</div>
+        <div class="history-empty" id="history-empty">No trips yet.</div>
+        <ul class="history-list" id="history-list"></ul>
+        <div class="history-actions" id="history-actions" style="display:none; margin-top:12px; gap:8px; display:flex;">
+          <button type="button" class="btn btn--outline" onclick="exportCSV()" id="export-btn" style="flex:1;">Export CSV</button>
+          <button type="button" class="btn btn--outline" onclick="clearHistory()" id="clear-btn" style="flex:1;">Clear</button>
+        </div>
+      </section>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        CO₂ Trip Calculator &nbsp;&middot;&nbsp; 
+        <a href="https://raviy00.github.io/Air-Quality-Monitor/" target="_blank" rel="noopener">GPS Helper</a> &nbsp;&middot;&nbsp; 
+        <a href="https://github.com/raviy00/Air-Quality-Monitor" target="_blank" rel="noopener">GitHub</a>
+      </footer>
+
+    </aside>
+
+    <!-- ── Map Panel (Fixed) ──────────────────────────────── -->
+    <main class="map-panel">
+      <!-- Live tracking overlay -->
+      <div class="tracking-overlay">
+        <div class="tracking-controls">
+          <button type="button" class="btn btn--outline" id="track-btn" onclick="toggleTracking()">
+            Start Live Tracking
+          </button>
+          <span class="live-badge" id="live-badge" style="display:none;">TRACKING</span>
+        </div>
+        
+        <div class="tracking-info" id="tracking-info" style="display:none;">
+          <div class="tracking-info__item">
+            <span class="tracking-info__label">Speed:</span> <span class="tracking-info__value" id="track-speed">—</span>
+          </div>
+          <div class="tracking-info__item">
+            <span class="tracking-info__label">Accuracy:</span> <span class="tracking-info__value" id="track-accuracy">—</span>
+          </div>
+          <div class="tracking-info__item">
+            <span class="tracking-info__label">Position:</span> <span class="tracking-info__value" id="track-coords">—</span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="map-container" id="map"></div>
+    </main>
+
+  </div>
+
+  <!-- ── Scripts ─────────────────────────────────────────── -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script>
+    (function () {
+      if (typeof CONFIG === 'undefined' || !CONFIG.GOOGLE_MAPS_API_KEY || CONFIG.GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY_HERE') {
+        document.getElementById('status-container').innerHTML =
+          '<div class="status-msg status-msg--error">Missing API key.</div>';
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = 'https://maps.googleapis.com/maps/api/js?key=' + CONFIG.GOOGLE_MAPS_API_KEY + '&libraries=places&callback=initMap';
+      s.async = true;
+      s.defer = true;
+      document.body.appendChild(s);
+    })();
+  </script>
+
+</body>
+</html>
