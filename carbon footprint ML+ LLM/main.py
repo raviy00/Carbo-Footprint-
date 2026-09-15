@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal
+from typing import List, Literal
 
 import joblib
 import numpy as np
@@ -37,6 +37,13 @@ class PredictionResponse(BaseModel):
     carbon_emission_kg: float
     level: Literal["Low", "Medium", "High"]
     llm_message: str
+
+
+class TripPredictionResponse(BaseModel):
+    total_trip_emission_kg: float
+    overall_trip_level: Literal["Low", "Medium", "High"]
+    overall_llm_message: str
+    top_3_high_impact_activities: List[dict]
 
 
 app = FastAPI(title="Carbon Footprint Prediction API", version="3.1.0")
@@ -86,6 +93,15 @@ def get_level(predicted_value: float) -> Literal["Low", "Medium", "High"]:
     return "High"
 
 
+def get_trip_level(total_emission: float) -> Literal["Low", "Medium", "High"]:
+    """Map total trip emissions to an overall trip level."""
+    if total_emission < 50:
+        return "Low"
+    if total_emission <= 150:
+        return "Medium"
+    return "High"
+
+
 def build_feature_frame(request_data: TouristData) -> pd.DataFrame:
     """Convert the request payload into the training feature order."""
     return pd.DataFrame(
@@ -122,6 +138,13 @@ def preprocess_input(features: pd.DataFrame, preprocessor, encoder, scaler):
 
 
 def generate_fallback_recommendation(emission: float, activity_type: str, day: int, level: str) -> str:
+    if day == 0 or activity_type == "the entire trip":
+        if level == "Low":
+            return f"Great job! Your entire trip is highly sustainable with a minimal overall footprint of {emission:.2f} kg CO2."
+        if level == "Medium":
+            return f"Your entire trip generated a moderate footprint of {emission:.2f} kg CO2. Consider offsetting this by engaging in local eco-activities."
+        return f"Your overall trip footprint is quite high at {emission:.2f} kg CO2. We strongly recommend choosing greener transport and accommodations for future travel."
+
     act_lower = str(activity_type).lower()
     
     if "travel" in act_lower or "leg" in act_lower or "transport" in act_lower:
@@ -149,44 +172,90 @@ def get_llm_recommendation(
     activity_type: str,
     day: int,
     level: str,
+    context_activities: list = None,
 ) -> str:
     """Call local Ollama, or fallback to smart recommendation generator if Ollama is offline."""
-    prompt = f"""
-    You are a world-class Sustainability Expert and Carbon Footprint Analyst. 
-    Your strict task is to provide a highly accurate, data-driven recommendation based on the user's specific travel calculation.
+    if activity_type == "the entire trip":
+        activity_details = "\n".join(
+            f"  - Day {activity.get('day')}: {activity.get('activity_type')} in "
+            f"{activity.get('location')} for {activity.get('duration_minutes')} minutes; "
+            f"{activity.get('predicted_emission_kg'):.2f} kg CO2 ({activity.get('level')} level)"
+            for activity in (context_activities or [])
+        ) or "  - No activity details were provided."
+        
+        prompt = f"""
+        You are an Eco-Tourism Assistant for Sri Lanka.
+        
+        Trip Data:
+        - Total Emission: {emission:.2f} kg CO2
+        - Severity: {level}
+        - High-Impact Activities:
+        {activity_details}
+        
+        TASK: Write EXACTLY 2 sentences in a single paragraph. 
+        Sentence 1: State the total emission ({emission:.2f} kg CO2) and briefly explain that it is driven by the specific activities listed above. DO NOT invent data or numbers.
+        Sentence 2: Give ONE specific, actionable eco-friendly tip for Sri Lanka to reduce this footprint based ONLY on the locations provided.
+        
+        STRICT RULES:
+        - NO headings.
+        - NO bold text or asterisks.
+        - NO bullet points.
+        - OUTPUT ONLY THE 2 SENTENCES. NOTHING ELSE.
+        """
+    else:
+        prompt = f"""
+        You are a Sustainability Expert and Carbon Footprint Analyst.
+        
+        Context Data:
+        - Activity: {activity_type} on Day {day}
+        - Calculated Carbon Emission: {emission:.2f} kg CO2
+        - Severity Level: {level}
 
-    Context Data:
-    - Activity: {activity_type} on Day {day}
-    - Calculated Carbon Emission: {emission} kg CO2
-    - Severity Level: {level}
-
-    Strict Rules for your response:
-    1. Data Accuracy: You MUST explicitly mention the exact emission value ({emission} kg CO2) and the activity ({activity_type}) in your response.
-    2. Dynamic Tone & Advice:
-       - IF Severity Level is 'Low': Praise the user. Briefly explain why this choice is eco-friendly.
-       - IF Severity Level is 'Medium': Acknowledge their effort, but suggest one practical optimization to lower it further.
-       - IF Severity Level is 'High': Adopt a professional, urgent tone. Recommend a highly specific, actionable alternative to severely reduce this footprint.
-    3. Constraint: Output exactly 2 impactful sentences. No generic greetings, no fluff.
-
-    Expert Recommendation:
-    """
+        Strict Rules for your response:
+        1. You MUST explicitly mention the exact emission value ({emission:.2f} kg CO2) and the activity ({activity_type}).
+        2. IF 'Low': Praise the user briefly. IF 'Medium': Suggest one practical optimization. IF 'High': Recommend a highly specific, actionable alternative.
+        3. NO headings, NO bold text, NO asterisks, NO bullet points.
+        4. Output EXACTLY 2 impactful sentences in a single paragraph. Nothing else.
+        """
 
     payload = {
         "model": "gemma3:1b",
         "prompt": prompt,
         "stream": False,
+        "options": {
+            "temperature": 0.1,  # Hallucination අවම කරයි
+            "top_p": 0.5
+        }
     }
 
     try:
-        response = requests.post(OLLAMA_URL, json=payload, timeout=3)
+        response = requests.post("http://localhost:11434/api/generate", json=payload, timeout=60)
         response.raise_for_status()
         response_data = response.json()
         message = response_data.get("response", "")
-        if isinstance(message, str) and message.strip() and message.strip() != "Pending LLM generation":
-            return message.strip()
-        return generate_fallback_recommendation(emission, activity_type, day, level)
+
+        if (
+            isinstance(message, str)
+            and message.strip()
+            and message.strip() != "Pending LLM generation"
+        ):
+            # අමතරව AI එකෙන් එවන Asterisks (*) හෝ Newlines (\n) මකා දැමීම
+            clean_message = message.replace("*", "").replace("\n", " ").strip()
+            return clean_message
+
+        return generate_fallback_recommendation(
+            emission,
+            activity_type,
+            day,
+            level,
+        )
     except Exception:
-        return generate_fallback_recommendation(emission, activity_type, day, level)
+        return generate_fallback_recommendation(
+            emission,
+            activity_type,
+            day,
+            level,
+        )
 
 @app.on_event("startup")
 def startup_event() -> None:
@@ -199,6 +268,74 @@ def root():
     return {"message": "Carbon Footprint Prediction API is running."}
 
 
+@app.post("/api/predict/trip", response_model=TripPredictionResponse)
+def predict_trip(request_data: List[TouristData]):
+    try:
+        model = app.state.model
+        preprocessor = app.state.preprocessor
+        encoder = app.state.encoder
+        scaler = app.state.scaler
+        activity_predictions = []
+
+        for activity in request_data:
+            feature_frame = build_feature_frame(activity)
+            processed_input = preprocess_input(
+                feature_frame,
+                preprocessor,
+                encoder,
+                scaler,
+            )
+            predicted_emission = max(0.0, float(model.predict(processed_input)[0]))
+            activity_type_lower = activity.Activity_Type.lower()
+
+            if activity_type_lower in [
+                "hiking",
+                "walking",
+                "cycling",
+                "bicycle ride",
+                "scuba diving",
+                "snorkeling",
+            ] or "hotel" in activity_type_lower:
+                predicted_emission = activity.emission
+
+            activity_predictions.append(
+                {
+                    "day": activity.day,
+                    "activity_type": activity.Activity_Type,
+                    "location": activity.Location,
+                    "duration_minutes": activity.Duration_Minutes,
+                    "predicted_emission_kg": predicted_emission,
+                    "level": get_level(predicted_emission),
+                }
+            )
+
+        total_trip_emission = sum(
+            activity["predicted_emission_kg"] for activity in activity_predictions
+        )
+        overall_trip_level = get_trip_level(total_trip_emission)
+        top_3_activities = sorted(
+            activity_predictions,
+            key=lambda activity: activity["predicted_emission_kg"],
+            reverse=True,
+        )[:3]
+        overall_llm_message = get_llm_recommendation(
+            emission=total_trip_emission,
+            activity_type="the entire trip",
+            day=0,
+            level=overall_trip_level,
+            context_activities=top_3_activities,
+        )
+
+        return TripPredictionResponse(
+            total_trip_emission_kg=total_trip_emission,
+            overall_trip_level=overall_trip_level,
+            overall_llm_message=overall_llm_message,
+            top_3_high_impact_activities=top_3_activities,
+        )
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+
+
 @app.post("/api/predict", response_model=PredictionResponse)
 def predict(request_data: TouristData):
     try:
@@ -208,8 +345,25 @@ def predict(request_data: TouristData):
         scaler = app.state.scaler
 
         feature_frame = build_feature_frame(request_data)
-        processed_input = preprocess_input(feature_frame, preprocessor, encoder, scaler)
-        carbon_emission_kg = float(model.predict(processed_input)[0])
+        processed_input = preprocess_input(
+            feature_frame,
+            preprocessor,
+            encoder,
+            scaler,
+        )
+        carbon_emission_kg = max(0.0, float(model.predict(processed_input)[0]))
+        activity_type_lower = request_data.Activity_Type.lower()
+
+        if activity_type_lower in [
+            "hiking",
+            "walking",
+            "cycling",
+            "bicycle ride",
+            "scuba diving",
+            "snorkeling",
+        ] or "hotel" in activity_type_lower:
+            carbon_emission_kg = request_data.emission
+
         level = get_level(carbon_emission_kg)
         llm_message = get_llm_recommendation(
             emission=request_data.emission,

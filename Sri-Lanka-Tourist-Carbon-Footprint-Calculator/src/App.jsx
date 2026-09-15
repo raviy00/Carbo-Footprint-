@@ -487,14 +487,6 @@ const deleteTrip = async (id) => {
             <tr><td>Activity Emissions (all days)</td><td>${activityEmission.toFixed(2)}</td></tr>
             <tr><td>Hotel Emissions (all nights)</td><td>${hotelEmission.toFixed(2)}</td></tr>
             <tr><td>Transport Emissions (all legs)</td><td>${totalTransportEmission.toFixed(2)}</td></tr>
-            <tr style="font-weight:600; background:#eaf7f0;">
-              <td>Total Trip Footprint</td>
-              <td>${grandTotal.toFixed(2)} kg CO₂</td>
-            </tr>
-            <tr style="font-weight:600;">
-              <td>Per Person Footprint</td>
-              <td>${perPerson.toFixed(2)} kg CO₂</td>
-            </tr>
           </tbody>
         </table>
 
