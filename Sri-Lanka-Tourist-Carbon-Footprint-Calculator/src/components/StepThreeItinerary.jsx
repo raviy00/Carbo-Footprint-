@@ -263,7 +263,7 @@ function StepThreeItinerary({
                           }}
                         >
                           {base.isRental
-                            ? <option>Rental Vehicle</option>
+                            ? <option>{base.rentalVehicleType}</option>
                             : availableVehicles.map((v) => <option key={v.name} value={v.name}>{v.name}</option>)
                           }
                         </select>

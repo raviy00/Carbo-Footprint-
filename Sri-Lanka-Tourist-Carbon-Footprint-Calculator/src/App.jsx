@@ -131,7 +131,7 @@ function App() {
     from: base.arrivalAirport,
     to: destinations[0].location,
     when: "Day 1 - after arrival",
-    transportMode: base.isRental ? "Rental Vehicle" : choice,
+    transportMode: base.isRental ? base.rentalVehicleType : choice,
     fuelType: base.isRental ? base.rentalPowerSource : defaultFuel
   });
   for (let i = 0; i < destinations.length - 1; i += 1) {
@@ -140,7 +140,7 @@ function App() {
       from: destinations[i].location,
       to: destinations[i + 1].location,
       when: `End of Day ${fromDay} / Start of Day ${fromDay + 1}`,
-      transportMode: base.isRental ? "Rental Vehicle" : choice,
+      transportMode: base.isRental ? base.rentalVehicleType : choice,
       fuelType: base.isRental ? base.rentalPowerSource : defaultFuel
     });
   }
@@ -148,7 +148,7 @@ function App() {
     from: destinations[destinations.length - 1].location,
     to: base.departureAirport,
     when: `Day ${base.totalDays} - before departure`,
-    transportMode: base.isRental ? "Rental Vehicle" : choice,
+    transportMode: base.isRental ? base.rentalVehicleType : choice,
     fuelType: base.isRental ? base.rentalPowerSource : defaultFuel
   });
 
